@@ -262,6 +262,30 @@ app.get("/products/:id/", authenticateToken, (request, response) => {
     );
 });
 
+// GET prime deals API
+app.get("/prime-deals/", authenticateToken, async (request, response) => {
+    try {
+        const getPrimeDealsQuery = `SELECT * FROM prime_deals`;
+        db.all(getPrimeDealsQuery, [], (err, rows) => {
+            if (err) {
+                console.error("Database error:", err.message);
+                response.status(500).json({ error: "Internal Server Error" });
+            } else if (!rows || rows.length === 0) {
+                response.status(400).json({ status_code: 404, error_msg: "No Prime Deals Found" });
+            } else {
+                const primeDeals = {
+                    "prime_deals": rows,
+                    "total": rows.length
+                }
+                response.json(primeDeals);
+            }
+        });
+    } catch (error) {
+        console.log("Error fetching prime deals:", error);
+        response.status(500).json({ error: "Failed to fetch prime deals" });
+    }
+});
+
 app.listen(3000, () => {
     console.log("Server is Running at http://localhost:3000/");
 });
