@@ -139,36 +139,9 @@ app.post("/login/", (request, response) => {
 // GET products API
 app.get("/products/", authenticateToken, async (request, response) => {
     try {
-        const { sort_by = "", category = "", title_search = "", rating = "" } = request.query;
+        const getProductsQuery = `SELECT * FROM products`;
 
-        let query = `SELECT * FROM products WHERE 1=1`;
-        const params = [];
-
-        if (title_search) {
-            query += ` AND title LIKE ?`;
-            params.push(`%${title_search}%`);
-        }
-
-        if (category) {
-            query += `
-                AND (
-                    title LIKE ?
-                    OR description LIKE ?
-                    OR image_url LIKE ?
-                )
-            `;
-            const searchTerm = `%${category}%`;
-            params.push(searchTerm, searchTerm, searchTerm);
-        }
-
-        if (rating) {
-            query += ` AND rating >= ?`;
-            params.push(rating);
-        }
-
-        query += ` ORDER BY price ${sort_by === "PRICE_HIGH" ? "DESC" : "ASC"}`;
-
-        db.all(query, params, (err, rows) => {
+        db.all(getProductsQuery, [], (err, rows) => {
             if (err) {
                 console.error("Database error:", err.message);
                 response.status(500).json({ error: "Internal Server Error" });
