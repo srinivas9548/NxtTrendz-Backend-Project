@@ -70,7 +70,7 @@ app.get('/', async (request, response) => {
     }
 });
 
-// Register user 
+// Register user API
 app.post("/users/", async (request, response) => {
     try {
         const { username, name, password, gender, location } = request.body;
@@ -215,18 +215,18 @@ const similarProductMapping = {
     51: [46, 47, 48],
     52: [46, 47, 48],
     53: [46, 47, 48],
-    54: [46, 47, 48]
+    54: [46, 47, 48],
+    1001: [1002, 1003],
+    1002: [1001, 1003],
+    1003: [1001, 1002]
 };
 
 // GET a specific product by productId API
 app.get("/products/:id/", authenticateToken, (request, response) => {
     const productId = parseInt(request.params.id);
-
+    const getProductQuery = "SELECT * FROM product_details WHERE id = ?"
     // Fetch the main product
-    db.get(
-        "SELECT * FROM product_details WHERE id = ?",
-        [productId],
-        (err, product) => {
+    db.get(getProductQuery, [productId], (err, product) => {
             if (err) {
                 console.error("Error fetching product:", err.message);
                 return response.status(500).json({ error: "Failed to fetch product" });
