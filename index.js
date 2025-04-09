@@ -139,8 +139,36 @@ app.post("/login/", (request, response) => {
 // GET products API
 app.get("/products/", authenticateToken, async (request, response) => {
     try {
-        const getProductsQuery = `SELECT * FROM products`;
-        db.all(getProductsQuery, [], (err, rows) => {
+        const { sort_by = "", category = "", title_search = "", rating = "" } = request.query;
+
+        let query = `SELECT * FROM products WHERE 1=1`;
+        const params = [];
+
+        if (title_search) {
+            query += ` AND title LIKE ?`;
+            params.push(`%${title_search}%`);
+        }
+
+        if (category) {
+            query += `
+                AND (
+                    title LIKE ?
+                    OR description LIKE ?
+                    OR image_url LIKE ?
+                )
+            `;
+            const searchTerm = `%${category}%`;
+            params.push(searchTerm, searchTerm, searchTerm);
+        }
+
+        if (rating) {
+            query += ` AND rating >= ?`;
+            params.push(rating);
+        }
+
+        query += ` ORDER BY price ${sort_by === "PRICE_HIGH" ? "DESC" : "ASC"}`;
+
+        db.all(query, params, (err, rows) => {
             if (err) {
                 console.error("Database error:", err.message);
                 response.status(500).json({ error: "Internal Server Error" });
@@ -227,38 +255,38 @@ app.get("/products/:id/", authenticateToken, (request, response) => {
     const getProductQuery = "SELECT * FROM product_details WHERE id = ?"
     // Fetch the main product
     db.get(getProductQuery, [productId], (err, product) => {
-            if (err) {
-                console.error("Error fetching product:", err.message);
-                return response.status(500).json({ error: "Failed to fetch product" });
-            }
-
-            if (!product) {
-                return response.status(404).json({ error: "Product not found" });
-            }
-
-            // Check if the product has similar products mapped
-            const similarIds = similarProductMapping[productId];
-            if (!similarIds) {
-                return response.json({ ...product, similar_products: [] });
-            }
-
-            // Fetch the similar products
-            const placeholders = similarIds.map(() => "?").join(",");
-            const query = `SELECT * FROM similar_products WHERE id IN (${placeholders})`;
-
-            db.all(query, similarIds, (err, similarProducts) => {
-                if (err) {
-                    console.error("Error fetching similar products:", err.message);
-                    return response.status(500).json({ error: "Failed to fetch similar products" });
-                }
-
-                // Return combined response
-                response.json({
-                    ...product,
-                    similar_products: similarProducts,
-                });
-            });
+        if (err) {
+            console.error("Error fetching product:", err.message);
+            return response.status(500).json({ error: "Failed to fetch product" });
         }
+
+        if (!product) {
+            return response.status(404).json({ error: "Product not found" });
+        }
+
+        // Check if the product has similar products mapped
+        const similarIds = similarProductMapping[productId];
+        if (!similarIds) {
+            return response.json({ ...product, similar_products: [] });
+        }
+
+        // Fetch the similar products
+        const placeholders = similarIds.map(() => "?").join(",");
+        const query = `SELECT * FROM similar_products WHERE id IN (${placeholders})`;
+
+        db.all(query, similarIds, (err, similarProducts) => {
+            if (err) {
+                console.error("Error fetching similar products:", err.message);
+                return response.status(500).json({ error: "Failed to fetch similar products" });
+            }
+
+            // Return combined response
+            response.json({
+                ...product,
+                similar_products: similarProducts,
+            });
+        });
+    }
     );
 });
 
