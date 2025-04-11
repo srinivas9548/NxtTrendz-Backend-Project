@@ -138,9 +138,42 @@ app.post("/login/", (request, response) => {
 
 // GET products API
 app.get("/products/", authenticateToken, async (request, response) => {
-    try {
-        const getProductsQuery = `SELECT * FROM products`;
+    const { sort_by = '', rating = '', title_search = '', category = '' } = request.query;
 
+    let getProductsQuery = `SELECT * FROM products`;
+    let conditions = [];
+
+    // Filter by rating if provided
+    if (rating !== '') {
+        conditions.push(`CAST(rating AS INTEGER) >= ${rating}`);
+    }
+
+    // Filter by title
+    if (title_search !== '') {
+        const title = title_search.toLowerCase();
+        conditions.push(`LOWER(title) LIKE '%${title}%'`);
+    }
+
+    // Filter by category through image_url
+    if (category !== '') {
+        const categoryFilter = category.toLowerCase().substring(0, 5);
+        conditions.push(`LOWER(image_url) LIKE '%${categoryFilter}%'`);
+    }
+
+    // Add WHERE clause if there are any conditions
+    if (conditions.length > 0) {
+        getProductsQuery += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    // sorting the products based on price
+    if (sort_by === "PRICE_HIGH") {
+        getProductsQuery += ` ORDER BY price DESC`;
+    } else if (sort_by === "PRICE_LOW") {
+        getProductsQuery += ` ORDER BY price ASC`;
+    }
+    console.log("Final SQL Query:", getProductsQuery);
+
+    try {
         db.all(getProductsQuery, [], (err, rows) => {
             if (err) {
                 console.error("Database error:", err.message);
