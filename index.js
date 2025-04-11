@@ -140,6 +140,14 @@ app.post("/login/", (request, response) => {
 app.get("/products/", authenticateToken, async (request, response) => {
     const { sort_by = '', rating = '', title_search = '', category = '' } = request.query;
 
+    const categoryOptions = [
+        { name: 'Clothing', categoryId: '1' },
+        { name: 'Electronics', categoryId: '2' },
+        { name: 'Appliances', categoryId: '3' },
+        { name: 'Grocery', categoryId: '4' },
+        { name: 'Toys', categoryId: '5' },
+    ];
+
     let getProductsQuery = `SELECT * FROM products`;
     let conditions = [];
 
@@ -156,8 +164,14 @@ app.get("/products/", authenticateToken, async (request, response) => {
 
     // Filter by category through image_url
     if (category !== '') {
-        const categoryFilter = category.toLowerCase().substring(0, 5);
-        conditions.push(`LOWER(image_url) LIKE '%${categoryFilter}%'`);
+        const selectedCategory = categoryOptions.find(option =>
+            option.categoryId === category
+        );
+
+        if (selectedCategory) {
+            const categoryFilter = selectedCategory.name.toLowerCase().substring(0, 5);
+            conditions.push(`LOWER(image_url) LIKE '%${categoryFilter}%'`);
+        }
     }
 
     // Add WHERE clause if there are any conditions
